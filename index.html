@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Biomedical Lab | Multi-Experiment Setup</title>
+<style>
+:root {
+  --bg: #100e19; --panel: #1b1727; --panel2: #241d33; --line: #3b304b;
+  --text: #f7f2ff; --muted: #b7abc9; --coral: #ff806f; --lav: #b99cff;
+  --gold: #f4c76b; --mint: #8de0c3; --danger: #ff647c; --blue: #60a5fa;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: radial-gradient(circle at 80% 0%, #35223c 0, transparent 32%), var(--bg);
+  color: var(--text); font: 15px/1.6 Inter, system-ui, Segoe UI, sans-serif;
+}
+header {
+  position: sticky; top: 0; z-index: 20; background: #100e19eF;
+  backdrop-filter: blur(14px); border-bottom: 1px solid var(--line);
+}
+.nav {
+  max-width: 1220px; margin: auto; padding: 13px 22px; display: flex;
+  align-items: center; justify-content: space-between; gap: 16px;
+}
+.brand { font-weight: 850; letter-spacing: .2px; cursor: pointer; }
+.brand span { color: var(--coral); }
+nav { display: flex; gap: 8px; flex-wrap: wrap; }
+nav button {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  padding: 8px 11px; border-radius: 10px; font-size: 14px; font-family: inherit; font-weight: 600;
+}
+nav button:hover, nav button.active { color: white; background: #ffffff12; }
+main { max-width: 1220px; margin: auto; padding: 28px 22px 70px; }
+.tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Shared Styles */
+.hero { display: grid; grid-template-columns: 1fr; gap: 28px; padding: 42px 0 34px; text-align: center; }
+.hero h1 { font-size: clamp(38px, 5vw, 56px); line-height: 1.1; margin: 10px 0; letter-spacing: -1.5px; }
+.hero h1 em { font-style: normal; color: var(--coral); }
+.eyebrow { color: var(--gold); text-transform: uppercase; letter-spacing: 2px; font-size: 11px; font-weight: 800; }
+.lead { color: var(--muted); font-size: 17px; max-width: 700px; margin: 0 auto; }
+.section-head { margin: 40px 0 20px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.section-head h2 { font-size: 26px; margin: 5px 0 0; color: var(--lav); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 20px; }
+.card { background: linear-gradient(145deg, #211b2d, #191624); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+.card h3 { margin: 0 0 12px; color: var(--gold); }
+.card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.btn { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--coral); color: #100e19; transition: .2s; }
+.btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn.secondary { background: #ffffff10; color: var(--text); border: 1px solid var(--line); }
+.btn.danger { background: var(--danger); color: #fff; }
+.btn.mint { background: var(--mint); color: #100e19; }
+.formula { font-size: 16px; color: var(--mint); font-weight: 700; padding: 10px; background: #8de0c315; border-radius: 8px; margin: 8px 0; display: inline-block;}
+
+/* Simulator Layouts */
+.labgrid { display: grid; grid-template-columns: 340px 1fr; gap: 16px; margin-top: 20px; }
+.controls { display: flex; flex-direction: column; gap: 12px; }
+.control-group { background: #ffffff06; padding: 12px; border-radius: 10px; border: 1px solid var(--line); }
+.control-group label { display: flex; justify-content: space-between; font-size: 13px; color: #e8def4; margin-bottom: 8px; }
+.control-group output { color: var(--gold); font-weight: 700; }
+input[type=range] { width: 100%; accent-color: var(--coral); }
+select { width: 100%; padding: 8px; border-radius: 6px; background: #171321; border: 1px solid var(--line); color: white; }
+.monitor-screen { background: #0b0b13; border: 1px solid #41364e; border-radius: 12px; padding: 16px; margin-bottom: 16px; position: relative; }
+canvas { width: 100%; height: 160px; display: block; background: #050508; border-radius: 8px; border: 1px solid #3b304b; margin-top: 10px; }
+.metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
+.metric-box { background: #ffffff08; border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
+.metric-box small { color: var(--muted); display: block; font-size: 11px; }
+.metric-box strong { font-size: 20px; color: var(--gold); display: block; margin: 4px 0; }
+.status-badge { position: absolute; top: 16px; right: 16px; font-size: 11px; padding: 4px 8px; border-radius: 20px; background: #3b304b; color: white; }
+
+/* Checklists */
+.procedure-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.step { display: flex; gap: 10px; align-items: flex-start; padding: 12px; background: #ffffff06; border: 1px solid var(--line); border-radius: 10px; }
+.step input { accent-color: var(--mint); width: 18px; height: 18px; margin-top: 2px; }
+.step label { font-size: 14px; color: var(--muted); cursor: pointer; }
+.step label b { color: white; display: block; margin-bottom: 2px; }
+
+/* Student Details */
+.team { display: flex; gap: 12px; justify-content: center; margin-top: 30px; }
+.person { padding: 12px 20px; border: 1px solid var(--coral); background: #ff806f10; border-radius: 12px; text-align: center; }
+.person b { display: block; color: white; font-size: 16px; }
+.person span { color: var(--coral); font-size: 13px; font-family: monospace; }
+
+@media(max-width: 800px) {
+  .labgrid, .procedure-list, .metrics-row { grid-template-columns: 1fr; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .team { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand" onclick="switchTab('home')">BIO<span>LAB</span></div>
+    <nav>
+      <button class="tab-btn active" onclick="switchTab('home')">Home</button>
+      <button class="tab-btn" onclick="switchTab('ventilator')">Ventilator</button>
+      <button class="tab-btn" onclick="switchTab('tonometry')">Tonometry</button>
+      <button class="tab-btn" onclick="switchTab('defibrillator')">Defibrillator</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- HOME TAB -->
+  <div id="home" class="tab-content active">
+    <div class="hero">
+      <div class="eyebrow">Interactive Simulation Portal</div>
+      <h1>Virtual <em>Biomedical</em> Laboratory</h1>
+      <p class="lead">A comprehensive suite of interactive simulations designed for studying critical biomedical instrumentation, including mechanical ventilators, tonometric pulse analysis, and cardiac defibrillators.</p>
+    </div>
+    
+    <div class="card-grid" style="max-width: 900px; margin: 0 auto;">
+      <div class="card" style="cursor:pointer;" onclick="switchTab('ventilator')">
+        <h3>1. Study of Ventilators</h3>
+        <p>Explore the mechanics of artificial respiration. Adjust tidal volume, PEEP, and observe pressure/flow dynamics on a simulated test lung.</p>
+        <button class="btn secondary" style="width:100%; margin-top:10px;">Launch Lab</button>
+      </div>
+      <div class="card" style="cursor:pointer;" onclick="switchTab('tonometry')">
+        <h3>2. Tonometry Analysis</h3>
+        <p>Analyze arterial pulse waveforms using tonometric principles. Observe the characteristic dicrotic notch and systolic upstrokes.</p>
+        <button class="btn secondary" style="width:100%; margin-top:10px;">Launch Lab</button>
+      </div>
+      <div class="card" style="cursor:pointer;" onclick="switchTab('defibrillator')">
+        <h3>3. Defibrillator Operations</h3>
+        <p>Study the electrical conversion of ventricular fibrillation. Simulate charging and discharging energy to restore sinus rhythm.</p>
+        <button class="btn secondary" style="width:100%; margin-top:10px;">Launch Lab</button>
+      </div>
+    </div>
+
+    <div class="section-head" style="text-align:center; margin-top:60px; border:none;">
+      <div class="eyebrow">Laboratory Developed By</div>
+    </div>
+    <div class="team">
+      <div class="person">
+        <b>Austin Alex</b>
+        <span>[RA2311013010036]</span>
+      </div>
+      <div class="person">
+        <b>R S Suriya Narayanan</b>
+        <span>[RA2311013010040]</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VENTILATOR TAB -->
+  <div id="ventilator" class="tab-content">
+    <div class="eyebrow">Laboratory Module</div>
+    <h1 style="margin: 5px 0 30px; font-size: 32px;">Study of Ventilators</h1>
+    
+    <div class="section-head"><h2>1. Introduction & Theory</h2></div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Mechanics & Artificial Ventilation</h3>
+        <p>Respiration supplies oxygen to the tissues and removes carbon dioxide from them[cite: 1]. Inspiration results from the contraction of the diaphragm and intercostal muscles, enlarging the thoracic cavity[cite: 1]. In respiratory failure, mechanical ventilators supply enough oxygen and remove the right amount of CO₂, keeping arterial partial pressures at desired levels[cite: 1]. Positive-pressure ventilators apply a pressure greater than atmospheric to the airway to inflate the lungs[cite: 2].</p>
+      </div>
+      <div class="card">
+        <h3>Parameters & Modes</h3>
+        <p>Minute Volume (VE) is calculated as <span class="formula">VE = VT × f</span>, where VT is Tidal Volume and f is respiration rate[cite: 2].</p>
+        <p>Common modes include <b>CMV</b> (machine controls tidal volume and rate), <b>SIMV</b> (mandatory breath is timed to patient's own effort), and <b>CPAP</b> (holds a constant positive pressure while the patient breathes at will)[cite: 2, 3]. Modern systems use microprocessors to blend oxygen and air, compute inspiratory flow trajectories, and trigger safety limits[cite: 5].</p>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>2. Procedure</h2></div>
+    <div class="procedure-list">
+      <div class="step"><input type="checkbox" id="v_s1"><label for="v_s1"><b>Inspect Setup</b>Ensure gas supply is connected and unit is off[cite: 5].</label></div>
+      <div class="step"><input type="checkbox" id="v_s2"><label for="v_s2"><b>Connect Tubing</b>Attach inspiratory/expiratory limbs to test lung[cite: 5].</label></div>
+      <div class="step"><input type="checkbox" id="v_s3"><label for="v_s3"><b>Set Controls</b>Select mode (e.g., CMV), set rate, VT, I:E, and PEEP[cite: 6].</label></div>
+      <div class="step"><input type="checkbox" id="v_s4"><label for="v_s4"><b>Observe Waveforms</b>Record peak airway pressure, delivered volume, and VE[cite: 6].</label></div>
+    </div>
+
+    <div class="section-head"><h2>3. Virtual Experiment</h2></div>
+    <div class="labgrid">
+      <div class="controls card">
+        <h3 style="margin-top:0">Ventilator Settings</h3>
+        <div class="control-group">
+          <label>Mode</label>
+          <select id="v_mode"><option>CMV</option><option>SIMV</option><option>Assist/Control</option></select>
+        </div>
+        <div class="control-group">
+          <label>Rate (bpm) <output id="v_rateOut">12</output></label>
+          <input type="range" id="v_rate" min="5" max="30" value="12">
+        </div>
+        <div class="control-group">
+          <label>Tidal Vol (mL) <output id="v_vtOut">500</output></label>
+          <input type="range" id="v_vt" min="200" max="800" step="10" value="500">
+        </div>
+        <div class="control-group">
+          <label>PEEP (cmH₂O) <output id="v_peepOut">5</output></label>
+          <input type="range" id="v_peep" min="0" max="20" value="5">
+        </div>
+        <button class="btn mint" id="v_startBtn" style="margin-top:10px">▶ Start Ventilation</button>
+        <button class="btn secondary" id="v_stopBtn">■ Standby</button>
+      </div>
+      
+      <div class="monitor-screen card" style="padding:0; overflow:hidden;">
+        <div style="padding: 16px; background: #0b0b13;">
+          <div class="status-badge" id="v_status">STANDBY</div>
+          <h3 style="margin:0 0 10px; color:var(--text)">Live Telemetry</h3>
+          <canvas id="v_canvas" height="180"></canvas>
+          
+          <div class="metrics-row">
+            <div class="metric-box"><small>Minute Vol</small><strong id="v_veMetric">0.0</strong> L/min</div>
+            <div class="metric-box"><small>Peak Press</small><strong id="v_pipMetric">0.0</strong> cmH₂O</div>
+            <div class="metric-box"><small>FiO₂</small><strong>40%</strong> Set</div>
+            <div class="metric-box"><small>Delivered VT</small><strong id="v_delMetric">0</strong> mL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>4. Result</h2></div>
+    <div class="card"><p>Thus the working of the ventilator was studied[cite: 7]. The interactive waveforms demonstrated the relationship between flow, volume, and airway pressure under positive-pressure ventilation.</p></div>
+  </div>
+
+  <!-- TONOMETRY TAB -->
+  <div id="tonometry" class="tab-content">
+    <div class="eyebrow">Laboratory Module</div>
+    <h1 style="margin: 5px 0 30px; font-size: 32px;">Tonometry & Arterial Pulse Waveform</h1>
+    
+    <div class="section-head"><h2>1. Introduction & Theory</h2></div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Principle of Tonometry</h3>
+        <p>Tonometry measures pressure by sensing the force required to flatten or applanate a surface[cite: 8]. In arterial tonometry, a sensitive pressure transducer is applied over a superficial artery, such as the carotid, to record pulsatile pressure variations[cite: 8]. The pressure fluctuations are converted into proportional electrical signals for visualization[cite: 8].</p>
+      </div>
+      <div class="card">
+        <h3>Waveform Characteristics</h3>
+        <p>The arterial pulse waveform corresponds to cardiovascular mechanical activity. It contains a rapid upstroke associated with systolic ejection, a dicrotic notch indicating the closure of the aortic valve, and a gradual downstroke corresponding to diastolic relaxation[cite: 8]. Variations indicate physiological or pathological changes[cite: 8].</p>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>2. Procedure</h2></div>
+    <div class="procedure-list">
+      <div class="step"><input type="checkbox" id="t_s1"><label for="t_s1"><b>Connect Hardware</b>Interface transducer with BIOPAC data acquisition system[cite: 8].</label></div>
+      <div class="step"><input type="checkbox" id="t_s2"><label for="t_s2"><b>Sensor Placement</b>Place pressure sensor over carotid artery where pulse is palpable[cite: 8].</label></div>
+      <div class="step"><input type="checkbox" id="t_s3"><label for="t_s3"><b>Acquisition</b>Begin recording the arterial pulse waveform using AcqKnowledge[cite: 8].</label></div>
+      <div class="step"><input type="checkbox" id="t_s4"><label for="t_s4"><b>Signal Analysis</b>Determine peak-to-peak amplitude (Vpp) and frequency components[cite: 8].</label></div>
+    </div>
+
+    <div class="section-head"><h2>3. Virtual Experiment</h2></div>
+    <div class="labgrid">
+      <div class="controls card">
+        <h3 style="margin-top:0">DAQ Controls</h3>
+        <div class="control-group">
+          <label>Subject State</label>
+          <select id="t_state"><option value="resting">Resting (60 bpm)</option><option value="exercise">Post-Exercise (110 bpm)</option></select>
+        </div>
+        <div class="control-group">
+          <label>Sensor Gain (x) <output id="t_gainOut">1.0</output></label>
+          <input type="range" id="t_gain" min="0.5" max="2.0" step="0.1" value="1.0">
+        </div>
+        <button class="btn blue" id="t_recordBtn" style="margin-top:10px">● Start Recording</button>
+        <button class="btn secondary" id="t_stopBtn">■ Stop</button>
+      </div>
+      
+      <div class="monitor-screen card" style="padding:0; overflow:hidden;">
+        <div style="padding: 16px; background: #0b0b13;">
+          <div class="status-badge" id="t_status" style="background:#60a5fa">READY</div>
+          <h3 style="margin:0 0 10px; color:var(--text)">AcqKnowledge Digital Oscilloscope</h3>
+          <canvas id="t_canvas" height="200" style="background:#001100; border-color:#003300;"></canvas>
+          
+          <div class="metrics-row">
+            <div class="metric-box"><small>Heart Rate</small><strong id="t_hr">--</strong> bpm</div>
+            <div class="metric-box"><small>Sys Peak</small><strong id="t_sys">--</strong> V</div>
+            <div class="metric-box"><small>Dicrotic Notch</small><strong id="t_dic">--</strong> V</div>
+            <div class="metric-box"><small>Signal Status</small><strong id="t_sig" style="color:var(--mint)">Idle</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>4. Result</h2></div>
+    <div class="card"><p>The carotid arterial pulse waveform was successfully recorded using the BIOPAC data acquisition system and analyzed using AcqKnowledge software[cite: 8]. The experiment demonstrates the practical application of tonometric sensing and digital signal processing[cite: 8].</p></div>
+  </div>
+
+  <!-- DEFIBRILLATOR TAB -->
+  <div id="defibrillator" class="tab-content">
+    <div class="eyebrow">Laboratory Module</div>
+    <h1 style="margin: 5px 0 30px; font-size: 32px;">Working of Defibrillator</h1>
+    
+    <div class="section-head"><h2>1. Introduction & Theory</h2></div>
+    <div class="card-grid">
+      <div class="card">
+        <h3>Ventricular Fibrillation</h3>
+        <p>Ventricular fibrillation is a serious cardiac emergency resulting from the asynchronous contraction of heart muscle[cite: 9]. This uncoordinated movement leads to loss of cardiac output and irreversible damage if not reversed within 5 minutes[cite: 9].</p>
+      </div>
+      <div class="card">
+        <h3>Defibrillation Principle</h3>
+        <p>A high energy shock causes all muscle fibers to contract simultaneously, allowing them to respond to normal intrinsic pulses[cite: 9]. The circuit utilizes a variable autotransformer, a rectifier, and an oil-filled capacitor to store and discharge energy (programmable in Joules) across the heart[cite: 9]. Monophasic and biphasic pulses are used to restore normal sinus rhythm[cite: 9].</p>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>2. Procedure</h2></div>
+    <div class="procedure-list">
+      <div class="step"><input type="checkbox" id="d_s1"><label for="d_s1"><b>Initialization</b>Switch ON DC Defibrillator and Simulator. Connect ECG output to DSO[cite: 9].</label></div>
+      <div class="step"><input type="checkbox" id="d_s2"><label for="d_s2"><b>Rhythm Selection</b>Create 'V-fib' on simulator in manual mode, observe asynchronous wave[cite: 9].</label></div>
+      <div class="step"><input type="checkbox" id="d_s3"><label for="d_s3"><b>Energy Charge</b>Press charge switch to accumulate desired energy level (e.g., 200J - 300J)[cite: 9].</label></div>
+      <div class="step"><input type="checkbox" id="d_s4"><label for="d_s4"><b>Discharge Shock</b>Discharge energy and observe the corrected normal ECG waveform[cite: 9].</label></div>
+    </div>
+
+    <div class="section-head"><h2>3. Virtual Experiment</h2></div>
+    <div class="labgrid">
+      <div class="controls card">
+        <h3 style="margin-top:0">Defibrillator Panel</h3>
+        <div class="control-group">
+          <label>Cardiac Rhythm</label>
+          <select id="d_rhythm"><option value="vfib">Ventricular Fibrillation</option><option value="afib">Atrial Fibrillation</option><option value="normal">Sinus Rhythm</option></select>
+        </div>
+        <div class="control-group">
+          <label>Energy (Joules) <output id="d_energyOut">200</output></label>
+          <input type="range" id="d_energy" min="50" max="360" step="10" value="200">
+        </div>
+        <button class="btn gold" id="d_chargeBtn" style="margin-top:10px">⚡ Charge Capacitor</button>
+        <button class="btn danger" id="d_shockBtn" disabled>💥 DISCHARGE (SHOCK)</button>
+        <p id="d_msg" style="color:var(--gold); font-size:13px; text-align:center; margin-top:10px;">Select Rhythm to Begin</p>
+      </div>
+      
+      <div class="monitor-screen card" style="padding:0; overflow:hidden;">
+        <div style="padding: 16px; background: #0b0b13;">
+          <div class="status-badge" id="d_status" style="background:var(--danger)">V-FIB DETECTED</div>
+          <h3 style="margin:0 0 10px; color:var(--text)">Patient ECG Monitor</h3>
+          <canvas id="d_canvas" height="200" style="background:#0a1910; border-color:#143320;"></canvas>
+          
+          <div class="metrics-row">
+            <div class="metric-box"><small>System Energy</small><strong id="d_cap">0</strong> Joules</div>
+            <div class="metric-box"><small>Heart Rate</small><strong id="d_hr">---</strong> bpm</div>
+            <div class="metric-box"><small>Sync Mode</small><strong id="d_sync">Manual</strong></div>
+            <div class="metric-box"><small>Impedance</small><strong>50 Ω</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>4. Result</h2></div>
+    <div class="card"><p>Thus the working of defibrillator was studied[cite: 9]. The restoration of normal rhythm from fibrillating state via simulated high-voltage capacitor discharge was successfully observed.</p></div>
+  </div>
+
+</main>
+
+<script>
+// --- GLOBAL TAB LOGIC ---
+const tabs = ['home', 'ventilator', 'tonometry', 'defibrillator'];
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.querySelector(`nav button[onclick="switchTab('${tabId}')"]`)?.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// --- UTILITY FOR CANVAS ---
+function clearCanvas(ctx, width, height, bgColor = '#050508') {
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, width, height);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#222';
+  for(let i=0; i<height; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke(); }
+  for(let i=0; i<width; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
+}
+
+// --- 1. VENTILATOR SIMULATOR ---
+let v_raf = null, v_running = false, v_phase = 0;
+const v_canvas = document.getElementById('v_canvas');
+const v_ctx = v_canvas.getContext('2d');
+const v_ui = ['v_rate', 'v_vt', 'v_peep', 'v_mode'];
+v_ui.forEach(id => document.getElementById(id).addEventListener('input', () => {
+  document.getElementById(id+'Out').textContent = document.getElementById(id).value;
+}));
+
+document.getElementById('v_startBtn').onclick = () => {
+  v_running = true;
+  document.getElementById('v_status').textContent = 'VENTILATING';
+  document.getElementById('v_status').style.background = 'var(--mint)';
+  document.getElementById('v_status').style.color = '#100e19';
+  if(!v_raf) v_loop();
+};
+document.getElementById('v_stopBtn').onclick = () => {
+  v_running = false; cancelAnimationFrame(v_raf); v_raf = null;
+  document.getElementById('v_status').textContent = 'STANDBY';
+  document.getElementById('v_status').style.background = '#3b304b';
+  document.getElementById('v_status').style.color = 'white';
+};
+
+function v_loop() {
+  if(!v_running) return;
+  const rate = +document.getElementById('v_rate').value;
+  const vt = +document.getElementById('v_vt').value;
+  const peep = +document.getElementById('v_peep').value;
+  
+  v_phase = (v_phase + (rate/60) * 0.05) % 1; 
+  let insp = 0.33; // I:E 1:2
+  
+  // Calculate metrics
+  let pip = peep + (vt/1000)*25 + 5;
+  let ve = (vt * rate / 1000).toFixed(1);
+  
+  document.getElementById('v_pipMetric').textContent = pip.toFixed(1);
+  document.getElementById('v_veMetric').textContent = ve;
+  document.getElementById('v_delMetric').textContent = vt;
+  
+  // Draw wave (simulating pressure trace rolling)
+  clearCanvas(v_ctx, v_canvas.width, v_canvas.height);
+  v_ctx.strokeStyle = '#8de0c3';
+  v_ctx.lineWidth = 3;
+  v_ctx.beginPath();
+  
+  for(let i=0; i<v_canvas.width; i++) {
+    let localPhase = (v_phase + i/(v_canvas.width*1.5)) % 1.0;
+    let yVal = peep;
+    if(localPhase < insp) yVal = peep + (pip - peep) * Math.sin((localPhase/insp)*Math.PI);
+    else yVal = peep + (pip-peep)*0.1 * Math.exp(-(localPhase-insp)*10); // exponential drop to PEEP
+    
+    let y = v_canvas.height - 20 - (yVal / 40) * (v_canvas.height-40);
+    if(i===0) v_ctx.moveTo(i, y);
+    else v_ctx.lineTo(i, y);
+  }
+  v_ctx.stroke();
+  v_raf = requestAnimationFrame(v_loop);
+}
+
+// --- 2. TONOMETRY SIMULATOR ---
+let t_raf = null, t_running = false, t_phase = 0;
+const t_canvas = document.getElementById('t_canvas');
+const t_ctx = t_canvas.getContext('2d');
+const t_gainEl = document.getElementById('t_gain');
+t_gainEl.addEventListener('input', () => { document.getElementById('t_gainOut').textContent = t_gainEl.value; });
+
+document.getElementById('t_recordBtn').onclick = () => {
+  t_running = true;
+  document.getElementById('t_status').textContent = 'RECORDING';
+  document.getElementById('t_status').style.background = 'var(--danger)';
+  document.getElementById('t_sig').textContent = 'Active';
+  if(!t_raf) t_loop();
+};
+document.getElementById('t_stopBtn').onclick = () => {
+  t_running = false; cancelAnimationFrame(t_raf); t_raf = null;
+  document.getElementById('t_status').textContent = 'READY';
+  document.getElementById('t_status').style.background = '#60a5fa';
+  document.getElementById('t_sig').textContent = 'Idle';
+};
+
+function t_loop() {
+  if(!t_running) return;
+  const state = document.getElementById('t_state').value;
+  const gain = +t_gainEl.value;
+  const bpm = state === 'exercise' ? 110 : 60;
+  
+  document.getElementById('t_hr').textContent = bpm;
+  t_phase = (t_phase + (bpm/60) * 0.02) % 1;
+  
+  clearCanvas(t_ctx, t_canvas.width, t_canvas.height, '#001100');
+  t_ctx.strokeStyle = '#00ff44';
+  t_ctx.lineWidth = 2.5;
+  t_ctx.beginPath();
+  
+  for(let i=0; i<t_canvas.width; i++) {
+    let lp = (t_phase + i/(t_canvas.width*0.8)) % 1.0;
+    let wave = 0;
+    // Morphological approximation of arterial pulse (systolic peak + dicrotic notch)
+    if(lp < 0.25) wave = Math.sin(lp*Math.PI/0.25) * 80;
+    else if(lp < 0.6) {
+      wave = Math.max(0, 40 * Math.cos((lp - 0.25)*Math.PI/0.35));
+      if(lp > 0.35 && lp < 0.45) wave += 15 * Math.sin((lp-0.35)*Math.PI/0.1); // Dicrotic notch bump
+    }
+    
+    let y = t_canvas.height - 30 - (wave * gain);
+    if(i===0) t_ctx.moveTo(i, y);
+    else t_ctx.lineTo(i, y);
+  }
+  t_ctx.stroke();
+  
+  document.getElementById('t_sys').textContent = (1.2 * gain).toFixed(2);
+  document.getElementById('t_dic').textContent = (0.7 * gain).toFixed(2);
+  
+  t_raf = requestAnimationFrame(t_loop);
+}
+
+// --- 3. DEFIBRILLATOR SIMULATOR ---
+let d_raf = null;
+let d_phase = 0;
+let storedEnergy = 0;
+let currentRhythm = 'vfib'; // vfib, afib, normal
+const d_canvas = document.getElementById('d_canvas');
+const d_ctx = d_canvas.getContext('2d');
+
+document.getElementById('d_energy').addEventListener('input', (e) => {
+  document.getElementById('d_energyOut').textContent = e.target.value;
+});
+
+document.getElementById('d_rhythm').addEventListener('change', (e) => {
+  currentRhythm = e.target.value;
+  updateDefibUI();
+});
+
+document.getElementById('d_chargeBtn').onclick = () => {
+  if(currentRhythm === 'normal') return alert("Patient is in normal sinus rhythm. Do not shock.");
+  storedEnergy = +document.getElementById('d_energy').value;
+  document.getElementById('d_cap').textContent = storedEnergy;
+  document.getElementById('d_msg').textContent = `Capacitor charged to ${storedEnergy}J. Stand clear.`;
+  document.getElementById('d_shockBtn').disabled = false;
+};
+
+document.getElementById('d_shockBtn').onclick = () => {
+  if(storedEnergy >= 150) {
+    document.getElementById('d_msg').textContent = `SHOCK DELIVERED. Normal rhythm restored.`;
+    currentRhythm = 'normal';
+    document.getElementById('d_rhythm').value = 'normal';
+  } else {
+    document.getElementById('d_msg').textContent = `Shock delivered (${storedEnergy}J). Energy insufficient to convert V-Fib!`;
+  }
+  storedEnergy = 0;
+  document.getElementById('d_cap').textContent = 0;
+  document.getElementById('d_shockBtn').disabled = true;
+  updateDefibUI();
+};
+
+function updateDefibUI() {
+  const status = document.getElementById('d_status');
+  if(currentRhythm === 'normal') {
+    status.textContent = 'SINUS RHYTHM'; status.style.background = 'var(--mint)'; status.style.color = '#000';
+    document.getElementById('d_hr').textContent = '72';
+  } else if (currentRhythm === 'vfib') {
+    status.textContent = 'V-FIB DETECTED'; status.style.background = 'var(--danger)'; status.style.color = '#fff';
+    document.getElementById('d_hr').textContent = '---';
+  } else {
+    status.textContent = 'A-FIB DETECTED'; status.style.background = 'var(--gold)'; status.style.color = '#000';
+    document.getElementById('d_hr').textContent = '140';
+  }
+}
+
+function d_loop() {
+  d_phase += 0.02;
+  clearCanvas(d_ctx, d_canvas.width, d_canvas.height, '#0a1910');
+  d_ctx.strokeStyle = '#00ff88';
+  d_ctx.lineWidth = 2;
+  d_ctx.beginPath();
+  
+  for(let i=0; i<d_canvas.width; i++) {
+    let t = (d_phase + i/(d_canvas.width*0.5));
+    let yBase = d_canvas.height / 2;
+    let wave = 0;
+    
+    if(currentRhythm === 'vfib') {
+      wave = Math.sin(t*15)*25 + Math.sin(t*33)*10 + (Math.random()*10 - 5);
+    } else if (currentRhythm === 'afib') {
+      let p = t % 1.0;
+      if(p>0.2 && p<0.25) wave = 60; // Narrow R wave
+      else if(p>0.25 && p<0.3) wave = -20; // S wave
+      else wave = Math.sin(t*40)*5; // fibrillating baseline
+    } else { // Normal Sinus
+      let p = t % 1.0;
+      if(p>0.1 && p<0.15) wave = Math.sin((p-0.1)*Math.PI/0.05)*10; // P wave
+      else if(p>0.2 && p<0.22) wave = -10; // Q wave
+      else if(p>0.22 && p<0.26) wave = 70; // R wave
+      else if(p>0.26 && p<0.3) wave = -20; // S wave
+      else if(p>0.4 && p<0.55) wave = Math.sin((p-0.4)*Math.PI/0.15)*15; // T wave
+    }
+    
+    if(i===0) d_ctx.moveTo(i, yBase - wave);
+    else d_ctx.lineTo(i, yBase - wave);
+  }
+  d_ctx.stroke();
+  requestAnimationFrame(d_loop);
+}
+
+// Start Defib Animation immediately (always visible conceptually)
+updateDefibUI();
+d_loop();
+</script>
+</body>
+</html>
